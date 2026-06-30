@@ -1938,29 +1938,40 @@ function injectHomeShowcase(file, html, settings) {
   const cards = products.map((product) => {
     const image = escapeAttr(productCardImage(product));
     const price = product.price ? `<div class="dlz-bs-price">${escapeHtml(formatMoney(product.price, settings))}</div>` : "";
+    const badge = /new|thrust|v3/i.test(product.name || "") ? "NEW" : "BESTSELLER";
+    const swatches = productVariants(product).slice(0, 5).map((v) =>
+      `<span class="dlz-bs-dot" title="${escapeAttr(v.name || "")}" style="background:${escapeAttr(v.color || "#d8d8d8")}"></span>`
+    ).join("");
     return `<a class="dlz-bs-card" href="${escapeAttr(product.page)}">
+      <div class="dlz-bs-badge">${badge}</div>
       <div class="dlz-bs-img"><img src="${image}" alt="${escapeAttr(product.name)}" loading="lazy"></div>
       <div class="dlz-bs-name">${escapeHtml(product.name)}</div>
       <div class="dlz-bs-meta">${escapeHtml(product.subcategory || product.category || "")}</div>
-      ${price}
+      <div class="dlz-bs-foot">${price}${swatches ? `<div class="dlz-bs-dots">${swatches}</div>` : ""}</div>
     </a>`;
   }).join("");
   const style = `<style>
-    .dlz-bs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:24px;max-width:1400px;margin:26px auto 0;padding:0 clamp(12px,3vw,40px);font-family:Arial,"Microsoft YaHei",sans-serif}
-    .dlz-bs-card{display:flex;flex-direction:column;text-decoration:none;background:#fff;color:#0a0a0a;border-radius:10px;padding:16px 14px 18px;transition:transform .18s ease,box-shadow .18s ease}
-    .dlz-bs-card:hover{transform:translateY(-3px);box-shadow:0 16px 36px rgba(0,0,0,.35)}
-    .dlz-bs-img{display:grid;place-items:center;height:190px}
+    .dlz-bestsellers-wrap{margin-top:26px}
+    .dlz-bs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:24px;max-width:1480px;margin:0 auto;padding:0 clamp(12px,3vw,40px);font-family:Arial,"Microsoft YaHei",sans-serif}
+    .dlz-bs-card{position:relative;display:flex;flex-direction:column;text-decoration:none;background:#fff;color:#0a0a0a;border:1px solid #ececec;min-height:430px;padding:18px 16px 18px;transition:transform .18s ease,box-shadow .18s ease}
+    .dlz-bs-card:hover{transform:translateY(-3px);box-shadow:0 18px 40px rgba(0,0,0,.4)}
+    .dlz-bs-badge{font-size:12px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;color:#111;min-height:16px}
+    .dlz-bs-img{display:grid;place-items:center;height:210px;margin-top:8px}
     .dlz-bs-img img{max-width:100%;max-height:100%;object-fit:contain}
-    .dlz-bs-name{margin-top:12px;font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;line-height:1.2}
-    .dlz-bs-meta{font-size:11px;color:#777;margin-top:5px;letter-spacing:.05em}
-    .dlz-bs-price{margin-top:10px;font-size:14px;font-weight:800}
-    @media(max-width:760px){.dlz-bs-grid{grid-template-columns:repeat(2,1fr);gap:14px}.dlz-bs-img{height:140px}}
+    .dlz-bs-name{margin-top:18px;font-size:13px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;line-height:1.2}
+    .dlz-bs-meta{font-size:12px;color:#666;margin-top:6px;letter-spacing:.04em}
+    .dlz-bs-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:16px}
+    .dlz-bs-price{font-size:15px;font-weight:800;letter-spacing:.04em}
+    .dlz-bs-dots{display:flex;gap:7px}
+    .dlz-bs-dot{width:18px;height:18px;border-radius:50%;border:1px solid #cfcfcf;box-shadow:inset 0 0 0 2px #fff;display:inline-block}
+    @media(max-width:760px){.dlz-bs-grid{grid-template-columns:repeat(2,1fr);gap:14px}.dlz-bs-img{height:150px}.dlz-bs-card{min-height:360px}}
   </style>`;
-  const grid = `${style}<div class="dlz-bs-grid">${cards}</div>`;
-  // 1) Primary: fill the homepage "BESTSELLERS" products block (currently empty).
-  const blockRe = /(<div[^>]*class="[^"]*promotion-view-block[^"]*"[^>]*>)\s*<\/div>/i;
+  const grid = `<div class="dlz-bestsellers-wrap">${style}<div class="dlz-bs-grid">${cards}</div></div>`;
+  // 1) Primary: REPLACE the homepage "BESTSELLERS" React block entirely (drop its id/class
+  //    so LELO's React bundle can't mount and overwrite our recommended products).
+  const blockRe = /<div[^>]*class="[^"]*promotion-view-block[^"]*"[^>]*>\s*<\/div>/i;
   if (blockRe.test(html)) {
-    return html.replace(blockRe, (m, open) => `${open}${grid}</div>`);
+    return html.replace(blockRe, () => grid);
   }
   // 2) Fallback: append a section before the footer.
   const section = `<section class="dlz-home-showcase" style="padding:48px 0">${grid}</section>`;
