@@ -8,6 +8,7 @@ node_modules/
 
 # runtime / user data (do NOT commit — contains visitor IPs / uploads / deleted backups)
 admin-data/events.ndjson
+admin-data/auth.json
 assets/admin-uploads/*
 !assets/admin-uploads/.gitkeep
 _deleted_products/

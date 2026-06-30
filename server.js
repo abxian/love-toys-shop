@@ -12,12 +12,32 @@ const CATEGORIES_FILE = path.join(DATA_DIR, "categories.json");
 const IMAGES_FILE = path.join(DATA_DIR, "images.json");
 const BLOCKS_FILE = path.join(DATA_DIR, "blocks.json");
 const EVENTS_FILE = path.join(DATA_DIR, "events.ndjson");
+const AUTH_FILE = path.join(DATA_DIR, "auth.json");
 const UPLOAD_DIR = path.join(ROOT, "assets", "admin-uploads");
 
 const PORT = Number(process.env.PORT || 4173);
 const HOST = process.env.HOST || "127.0.0.1";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123456";
 const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString("hex");
+
+// Admin password: a hash stored in admin-data/auth.json (set via the admin panel)
+// overrides the ADMIN_PASSWORD env default, so the password can be changed at runtime.
+function verifyAdminPassword(input) {
+  input = String(input || "");
+  const auth = readJson(AUTH_FILE, null);
+  if (auth && auth.salt && auth.hash) {
+    const test = crypto.scryptSync(input, auth.salt, 64).toString("hex");
+    const a = Buffer.from(test, "hex");
+    const b = Buffer.from(auth.hash, "hex");
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  }
+  return input === ADMIN_PASSWORD;
+}
+function setAdminPassword(next) {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const hash = crypto.scryptSync(String(next), salt, 64).toString("hex");
+  writeJson(AUTH_FILE, { salt, hash, updatedAt: new Date().toISOString() });
+}
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -1912,37 +1932,38 @@ function homeShowcaseProducts(settings) {
 
 function injectHomeShowcase(file, html, settings) {
   if (file !== "index.html") return html;
-  if (settings.homeShowcaseEnabled !== true) return html; // opt-in: off until enabled in admin
+  if (settings.homeShowcaseEnabled === false) return html; // on by default; admin can disable
   const products = homeShowcaseProducts(settings);
   if (!products.length) return html;
-  const title = escapeHtml(settings.homeShowcaseTitle || "Featured");
   const cards = products.map((product) => {
     const image = escapeAttr(productCardImage(product));
-    const price = product.price ? `<div class="dlz-home-price">${escapeHtml(formatMoney(product.price, settings))}</div>` : "";
-    return `<a class="dlz-home-card" href="${escapeAttr(product.page)}">
-      <div class="dlz-home-img"><img src="${image}" alt="${escapeAttr(product.name)}" loading="lazy"></div>
-      <div class="dlz-home-name">${escapeHtml(product.name)}</div>
-      <div class="dlz-home-meta">${escapeHtml(product.subcategory || product.category || "")}</div>
+    const price = product.price ? `<div class="dlz-bs-price">${escapeHtml(formatMoney(product.price, settings))}</div>` : "";
+    return `<a class="dlz-bs-card" href="${escapeAttr(product.page)}">
+      <div class="dlz-bs-img"><img src="${image}" alt="${escapeAttr(product.name)}" loading="lazy"></div>
+      <div class="dlz-bs-name">${escapeHtml(product.name)}</div>
+      <div class="dlz-bs-meta">${escapeHtml(product.subcategory || product.category || "")}</div>
       ${price}
     </a>`;
   }).join("");
-  const section = `<section class="dlz-home-showcase" aria-label="${title}">
-    <style>
-      .dlz-home-showcase{background:#fff;color:#0a0a0a;padding:54px clamp(18px,4vw,72px);font-family:Arial,"Microsoft YaHei",sans-serif}
-      .dlz-home-showcase h2{font-size:clamp(26px,3vw,40px);font-weight:800;letter-spacing:.04em;text-transform:uppercase;margin:0 0 28px;text-align:center}
-      .dlz-home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:34px 24px;max-width:1500px;margin:0 auto}
-      .dlz-home-card{display:flex;flex-direction:column;text-decoration:none;color:inherit;border:1px solid #e3e3e3;padding:18px 16px 20px;transition:box-shadow .18s ease,transform .18s ease}
-      .dlz-home-card:hover{box-shadow:0 14px 34px rgba(0,0,0,.10);transform:translateY(-2px)}
-      .dlz-home-img{display:grid;place-items:center;height:210px}
-      .dlz-home-img img{max-width:100%;max-height:100%;object-fit:contain}
-      .dlz-home-name{margin-top:16px;font-size:13px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;line-height:1.2}
-      .dlz-home-meta{font-size:12px;color:#666;letter-spacing:.06em;margin-top:6px}
-      .dlz-home-price{font-size:15px;font-weight:800;margin-top:12px}
-      @media(max-width:760px){.dlz-home-grid{grid-template-columns:repeat(2,1fr);gap:18px 12px}.dlz-home-img{height:140px}}
-    </style>
-    <h2>${title}</h2>
-    <div class="dlz-home-grid">${cards}</div>
-  </section>`;
+  const style = `<style>
+    .dlz-bs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:24px;max-width:1400px;margin:26px auto 0;padding:0 clamp(12px,3vw,40px);font-family:Arial,"Microsoft YaHei",sans-serif}
+    .dlz-bs-card{display:flex;flex-direction:column;text-decoration:none;background:#fff;color:#0a0a0a;border-radius:10px;padding:16px 14px 18px;transition:transform .18s ease,box-shadow .18s ease}
+    .dlz-bs-card:hover{transform:translateY(-3px);box-shadow:0 16px 36px rgba(0,0,0,.35)}
+    .dlz-bs-img{display:grid;place-items:center;height:190px}
+    .dlz-bs-img img{max-width:100%;max-height:100%;object-fit:contain}
+    .dlz-bs-name{margin-top:12px;font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;line-height:1.2}
+    .dlz-bs-meta{font-size:11px;color:#777;margin-top:5px;letter-spacing:.05em}
+    .dlz-bs-price{margin-top:10px;font-size:14px;font-weight:800}
+    @media(max-width:760px){.dlz-bs-grid{grid-template-columns:repeat(2,1fr);gap:14px}.dlz-bs-img{height:140px}}
+  </style>`;
+  const grid = `${style}<div class="dlz-bs-grid">${cards}</div>`;
+  // 1) Primary: fill the homepage "BESTSELLERS" products block (currently empty).
+  const blockRe = /(<div[^>]*class="[^"]*promotion-view-block[^"]*"[^>]*>)\s*<\/div>/i;
+  if (blockRe.test(html)) {
+    return html.replace(blockRe, (m, open) => `${open}${grid}</div>`);
+  }
+  // 2) Fallback: append a section before the footer.
+  const section = `<section class="dlz-home-showcase" style="padding:48px 0">${grid}</section>`;
   if (/<footer\b/i.test(html)) return html.replace(/<footer\b/i, `${section}\n<footer`);
   return injectBefore(html, "</body>", section);
 }
@@ -2410,7 +2431,7 @@ async function blocks(){const page=state.editorPage||'index.html';el('#view').in
 async function loadBlocks(page){const data=await api('/api/admin/editor?page='+encodeURIComponent(page));state.editor=data;el('#openBlockPage').href='/'+data.page;el('#blockPreview').src='/'+data.page+'?adminPreview='+Date.now();el('#blockList').innerHTML=data.blocks.map((b,i)=>\`<div class="block-item"><div class="toolbar"><span class="pill">\${esc(b.tag)}</span><label><input type="checkbox" data-block-enabled="\${i}" \${b.enabled!==false?'checked':''}> 启用</label></div><div class="row"><label>当前文字</label><textarea data-block-value="\${i}">\${esc(b.value||b.original)}</textarea></div><div class="mini">原文：\${esc(b.original)}</div></div>\`).join('')||'<div class="card muted">这个页面没有识别到可编辑文字区块。</div>';document.querySelectorAll('[data-block-value]').forEach(input=>input.oninput=()=>{state.editor.blocks[Number(input.dataset.blockValue)].value=input.value});document.querySelectorAll('[data-block-enabled]').forEach(input=>input.onchange=()=>{state.editor.blocks[Number(input.dataset.blockEnabled)].enabled=input.checked});el('#saveBlocks').onclick=saveBlocks}
 async function saveBlocks(){await api('/api/admin/blocks?page='+encodeURIComponent(state.editor.page),{method:'PUT',body:JSON.stringify(state.editor.blocks)});await load();alert('区块内容已保存');await loadBlocks(state.editor.page)}
 function pixels(){const x=state.settings;el('#view').innerHTML=\`<div class="grid"><div class="card"><h3>Head Pixel</h3><p class="muted">例如 Meta Pixel、TikTok Pixel、Google Tag。会插入到 &lt;/head&gt; 前。</p><textarea id="pixelHead">\${esc(x.pixelHead||'')}</textarea></div><div class="card"><h3>Body 底部代码</h3><p class="muted">需要放在页面底部的统计或聊天代码。</p><textarea id="pixelBodyEnd">\${esc(x.pixelBodyEnd||'')}</textarea></div></div><div class="toolbar"><button class="btn" id="save">保存 Pixel</button><label><input type="checkbox" id="tracking" \${x.trackingEnabled!==false?'checked':''}> 启用内置访问统计</label></div>\`;el('#save').onclick=async()=>{state.settings.pixelHead=el('#pixelHead').value;state.settings.pixelBodyEnd=el('#pixelBodyEnd').value;state.settings.trackingEnabled=el('#tracking').checked;await saveSettings()}}
-function whatsapp(){const x=state.settings;const curs=['OMR','AED','SAR','QAR','KWD','USD','EUR','GBP','CNY','JPY'];const cur=(x.currency||'OMR').toUpperCase();el('#view').innerHTML=\`<div class="card"><div class="grid"><div class="row"><label>全站 WhatsApp 链接</label><input id="waUrl" value="\${esc(x.whatsappUrl||'')}" placeholder="https://wa.me/8613..."></div><div class="row"><label>显示号码</label><input id="waNum" value="\${esc(x.whatsappNumber||'')}"></div></div><p class="muted">前台所有 WhatsApp 按钮会自动改为这里的链接，并记录点击事件。商品里填写专属链接时，商品页优先使用商品链接。</p><button class="btn" id="save">保存 WhatsApp</button></div><div class="card" style="margin-top:14px"><h3>货币</h3><div class="row"><label>全站货币</label><select id="siteCurrency">\${curs.map(c=>\`<option value="\${c}" \${c===cur?'selected':''}>\${c}</option>\`).join('')}</select></div><p class="muted">分类页、Quick View、商品详情页、首页展示位的价格都会用这个货币显示（默认 OMR 阿曼里亚尔）。价格数字在“商品管理/展示管理”里维护。</p><button class="btn" id="saveCur">保存货币</button></div>\`;el('#save').onclick=async()=>{state.settings.whatsappUrl=el('#waUrl').value;state.settings.whatsappNumber=el('#waNum').value;await saveSettings()};el('#saveCur').onclick=async()=>{state.settings.currency=el('#siteCurrency').value;await saveSettings()}}
+function whatsapp(){const x=state.settings;const curs=['OMR','AED','SAR','QAR','KWD','USD','EUR','GBP','CNY','JPY'];const cur=(x.currency||'OMR').toUpperCase();el('#view').innerHTML=\`<div class="card"><div class="grid"><div class="row"><label>全站 WhatsApp 链接</label><input id="waUrl" value="\${esc(x.whatsappUrl||'')}" placeholder="https://wa.me/8613..."></div><div class="row"><label>显示号码</label><input id="waNum" value="\${esc(x.whatsappNumber||'')}"></div></div><p class="muted">前台所有 WhatsApp 按钮会自动改为这里的链接，并记录点击事件。商品里填写专属链接时，商品页优先使用商品链接。</p><button class="btn" id="save">保存 WhatsApp</button></div><div class="card" style="margin-top:14px"><h3>货币</h3><div class="row"><label>全站货币</label><select id="siteCurrency">\${curs.map(c=>\`<option value="\${c}" \${c===cur?'selected':''}>\${c}</option>\`).join('')}</select></div><p class="muted">分类页、Quick View、商品详情页、首页展示位的价格都会用这个货币显示（默认 OMR 阿曼里亚尔）。价格数字在“商品管理/展示管理”里维护。</p><button class="btn" id="saveCur">保存货币</button></div><div class="card" style="margin-top:14px"><h3>修改后台密码</h3><div class="grid"><div class="row"><label>当前密码</label><input type="password" id="pwCur"></div><div class="row"><label>新密码（至少 6 位）</label><input type="password" id="pwNew"></div><div class="row"><label>确认新密码</label><input type="password" id="pwNew2"></div></div><p class="muted">修改后立即生效，新密码会加密保存到 admin-data/auth.json（覆盖环境变量默认密码）。</p><button class="btn" id="savePw">修改密码</button></div>\`;el('#save').onclick=async()=>{state.settings.whatsappUrl=el('#waUrl').value;state.settings.whatsappNumber=el('#waNum').value;await saveSettings()};el('#saveCur').onclick=async()=>{state.settings.currency=el('#siteCurrency').value;await saveSettings()};el('#savePw').onclick=async()=>{const cur=el('#pwCur').value,n1=el('#pwNew').value,n2=el('#pwNew2').value;if(n1.length<6){alert('新密码至少 6 位');return}if(n1!==n2){alert('两次新密码不一致');return}try{await api('/api/admin/password',{method:'PUT',body:JSON.stringify({current:cur,next:n1})});alert('密码已修改，下次登录请使用新密码');el('#pwCur').value=el('#pwNew').value=el('#pwNew2').value=''}catch(e){alert(e.message||'修改失败：当前密码可能不正确')}}}
 function events(){el('#view').innerHTML=\`<div class="toolbar"><button class="btn secondary" id="refresh">刷新</button><button class="btn danger" id="clear">清空记录</button></div><table><thead><tr><th>时间</th><th>类型</th><th>页面</th><th>商品</th><th>详情</th></tr></thead><tbody>\${state.events.map(e=>\`<tr><td>\${new Date(e.at).toLocaleString()}</td><td><span class="pill">\${e.type}</span></td><td>\${esc(e.path||'')}</td><td>\${esc(e.product?.name||'')}</td><td><code>\${esc(JSON.stringify(e.details||{}))}</code></td></tr>\`).join('')||'<tr><td class="muted">暂无记录</td></tr>'}</tbody></table>\`;el('#refresh').onclick=async()=>{await load();events()};el('#clear').onclick=async()=>{if(confirm('确定清空统计记录？')){await api('/api/admin/events',{method:'DELETE'});await load();events()}}}
 function bindEdit(arr){document.querySelectorAll('[data-k]').forEach(input=>{input.oninput=input.onchange=()=>{const item=arr[Number(input.dataset.i)];item[input.dataset.k]=input.type==='checkbox'?input.checked:input.value}})}
 async function savePages(){await api('/api/admin/pages',{method:'PUT',body:JSON.stringify(state.pages)});await load();alert('页面已保存')}
@@ -2778,7 +2799,7 @@ function merchandising(){
   html+='<div class="toolbar"><button class="btn" id="merchSave">保存排序与状态</button><button class="btn secondary" id="merchSelectAll">全选/取消</button><button class="btn secondary" id="merchEnable">上架选中</button><button class="btn secondary" id="merchDisable">下架选中</button><button class="btn secondary" id="merchPrice">批量改价</button><button class="btn secondary" id="merchCat">批量改分类</button></div>';
   html+='<p class="muted">拖动每行左侧 ⠿ 手柄或用 ↑↓ 调整顺序；★ 置顶让商品排在分类页最前。顺序、置顶、上下架、价格保存后立即同步到前台分类页。</p>';
   html+='<div id="merchList"></div>';
-  html+='<div class="card" style="margin-top:18px"><h3>首页展示位</h3><div class="row"><label><input type="checkbox" id="showEnabled" '+((state.settings&&state.settings.homeShowcaseEnabled===true)?'checked':'')+'> 在首页显示精选商品区块</label></div><div class="row"><label>区块标题</label><input id="showTitle" value="'+esc((state.settings&&state.settings.homeShowcaseTitle)||'精选商品 / Featured')+'"></div><p class="muted">勾选要在首页展示的商品（按上方排序顺序展示）。不勾选则自动展示置顶商品。</p><div id="showList"></div><div class="toolbar"><button class="btn" id="showSave">保存首页展示</button></div></div>';
+  html+='<div class="card" style="margin-top:18px"><h3>首页 Bestsellers 推荐商品</h3><div class="row"><label><input type="checkbox" id="showEnabled" '+((state.settings&&state.settings.homeShowcaseEnabled!==false)?'checked':'')+'> 在首页 Bestsellers 区显示推荐商品（默认开启）</label></div><p class="muted">勾选下方商品作为首页 Bestsellers 推荐（按上方排序顺序展示）。不勾选任何商品则自动展示置顶/前几个商品。取消上面的开关可隐藏整个区块。</p><div id="showList"></div><div class="toolbar"><button class="btn" id="showSave">保存首页推荐</button></div></div>';
   el('#view').innerHTML=html;
   drawMerchList();drawShowList();
   el('#merchSave').onclick=saveMerch;
@@ -2836,10 +2857,9 @@ async function saveMerch(){
 async function saveShowcase(){
   var ordered=state.merch.map(function(p){return p.slug}).filter(function(s){return state.showSel.has(s)});
   state.settings.homeShowcase=ordered;
-  state.settings.homeShowcaseTitle=el('#showTitle').value;
   state.settings.homeShowcaseEnabled=el('#showEnabled').checked;
   await api('/api/admin/settings',{method:'PUT',body:JSON.stringify(state.settings)});
-  await load();alert('首页展示已保存');
+  await load();alert('首页推荐已保存');
 }
 boot();
 </script>
@@ -2849,7 +2869,7 @@ boot();
 async function handleAdmin(req, res, url) {
   if (url.pathname === "/admin/login" && req.method === "POST") {
     const body = await readJsonBody(req);
-    if (body.password !== ADMIN_PASSWORD) return sendJson(res, 401, { error: "Invalid password" });
+    if (!verifyAdminPassword(body.password)) return sendJson(res, 401, { error: "Invalid password" });
     return sendJson(res, 200, { ok: true }, {
       "set-cookie": `admin_session=${encodeURIComponent(createSessionCookie())}; Path=/; HttpOnly; SameSite=Lax`,
     });
@@ -2865,6 +2885,14 @@ async function handleAdmin(req, res, url) {
     return send(res, 200, adminHtml(), { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
   }
   if (!isAuthed(req)) return sendJson(res, 401, { error: "Unauthorized" });
+  if (url.pathname === "/api/admin/password" && req.method === "PUT") {
+    const body = await readJsonBody(req);
+    if (!verifyAdminPassword(body.current)) return sendJson(res, 400, { error: "当前密码不正确" });
+    const next = String(body.next || "");
+    if (next.length < 6) return sendJson(res, 400, { error: "新密码至少 6 位" });
+    setAdminPassword(next);
+    return sendJson(res, 200, { ok: true });
+  }
   if (url.pathname === "/api/admin/state" && req.method === "GET") {
     return sendJson(res, 200, {
       settings: readJson(SETTINGS_FILE, {}),
