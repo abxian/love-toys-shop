@@ -2280,6 +2280,8 @@ function statsSummary() {
   const pageMap = {};
   const productMap = {};
   const productClickMap = {};
+  const productStats = {}; // slug -> { views, wa }
+  const bumpProduct = (slug, key) => { if (!slug) return; productStats[slug] = productStats[slug] || { views: 0, wa: 0 }; productStats[slug][key]++; };
   const visitorSet = new Set();
   const todayVisitorSet = new Set();
   let pageViews = 0;
@@ -2302,6 +2304,7 @@ function statsSummary() {
       if (day === todayKey) todayViews++;
       pageMap[e.path] = (pageMap[e.path] || 0) + 1;
       if (e.product?.name) productMap[e.product.name] = (productMap[e.product.name] || 0) + 1;
+      if (e.product?.slug) bumpProduct(e.product.slug, "views");
     }
     if (e.type === "product_click") {
       productClicks++;
@@ -2313,6 +2316,7 @@ function statsSummary() {
       whatsappClicks++;
       dayMap[day].whatsapp_click++;
       if (day === todayKey) todayWhatsapp++;
+      if (e.product?.slug) bumpProduct(e.product.slug, "wa");
     }
   }
   const days = Object.values(dayMap).map((day) => ({
@@ -2336,6 +2340,7 @@ function statsSummary() {
     topPages: Object.entries(pageMap).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([path, count]) => ({ path, count })),
     topProducts: Object.entries(productMap).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, count]) => ({ name, count })),
     topProductClicks: Object.entries(productClickMap).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, count]) => ({ name, count })),
+    productStats,
   };
 }
 
@@ -2769,7 +2774,7 @@ function merchandising(){
   state.merch=(state.products||[]).map(function(p){return {slug:p.slug,name:p.name,page:p.page,category:p.category||'Uncategorized',subcategory:p.subcategory||'General',price:p.price||'',enabled:p.enabled!==false,featured:p.featured===true,cardImage:p.cardImage||(p.images&&p.images[0]&&(p.images[0].replacement||p.images[0].preview))||''}});
   state.merchSel=new Set();
   state.showSel=new Set((state.settings&&state.settings.homeShowcase)||[]);
-  var html='<style>.merch-row{display:grid;grid-template-columns:24px 24px 54px 1fr auto auto 92px auto auto;gap:10px;align-items:center;background:#fff;border:1px solid #e2e5ea;border-radius:8px;padding:8px 12px;margin-bottom:8px}.merch-handle{cursor:grab;color:#9aa3af;font-size:18px;text-align:center}.merch-thumb{width:54px;height:54px;object-fit:contain;background:#f1f3f6;border-radius:6px}.merch-info{display:flex;flex-direction:column;min-width:0}.merch-info strong{font-size:13px}.merch-info span{font-size:12px}.merch-star{border:0;background:#eee;color:#bbb;width:34px;height:34px;border-radius:6px;cursor:pointer;font-size:16px}.merch-star.on{background:#ffd34d;color:#7a5a00}.merch-price{width:92px}.merch-en{font-size:12px;white-space:nowrap}.merch-ud button{border:1px solid #d6dbe3;background:#fff;width:26px;height:26px;border-radius:5px;cursor:pointer}.merch-show-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}.merch-show-item{display:flex;gap:8px;align-items:center;font-size:13px;border:1px solid #e2e5ea;border-radius:6px;padding:8px}@media(max-width:900px){.merch-row{grid-template-columns:24px 1fr;row-gap:6px}}</style>';
+  var html='<style>.merch-row{display:grid;grid-template-columns:24px 24px 54px 1fr auto auto 92px auto auto;gap:10px;align-items:center;background:#fff;border:1px solid #e2e5ea;border-radius:8px;padding:8px 12px;margin-bottom:8px}.merch-handle{cursor:grab;color:#9aa3af;font-size:18px;text-align:center}.merch-thumb{width:54px;height:54px;object-fit:contain;background:#f1f3f6;border-radius:6px}.merch-info{display:flex;flex-direction:column;min-width:0}.merch-info strong{font-size:13px}.merch-info span{font-size:12px}.merch-star{border:0;background:#eee;color:#bbb;width:34px;height:34px;border-radius:6px;cursor:pointer;font-size:16px}.merch-star.on{background:#ffd34d;color:#7a5a00}.merch-price{width:92px}.merch-en{font-size:12px;white-space:nowrap}.merch-toggle{border:0;border-radius:999px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;min-width:68px;transition:filter .15s ease}.merch-toggle:hover{filter:brightness(.96)}.merch-toggle.on{background:#e6f6ec;color:#138a36;box-shadow:inset 0 0 0 1px #99d8b0}.merch-toggle.off{background:#fdeaea;color:#c93535;box-shadow:inset 0 0 0 1px #e9a8a8}.merch-views{font-size:11px;color:#8a93a0;margin-top:3px;display:inline-flex;gap:10px}.merch-views b{color:#3a4250;font-weight:700}.merch-ud button{border:1px solid #d6dbe3;background:#fff;width:26px;height:26px;border-radius:5px;cursor:pointer}.merch-show-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}.merch-show-item{display:flex;gap:8px;align-items:center;font-size:13px;border:1px solid #e2e5ea;border-radius:6px;padding:8px}@media(max-width:900px){.merch-row{grid-template-columns:24px 1fr;row-gap:6px}}</style>';
   html+='<div class="toolbar"><button class="btn" id="merchSave">保存排序与状态</button><button class="btn secondary" id="merchSelectAll">全选/取消</button><button class="btn secondary" id="merchEnable">上架选中</button><button class="btn secondary" id="merchDisable">下架选中</button><button class="btn secondary" id="merchPrice">批量改价</button><button class="btn secondary" id="merchCat">批量改分类</button></div>';
   html+='<p class="muted">拖动每行左侧 ⠿ 手柄或用 ↑↓ 调整顺序；★ 置顶让商品排在分类页最前。顺序、置顶、上下架、价格保存后立即同步到前台分类页。</p>';
   html+='<div id="merchList"></div>';
@@ -2787,20 +2792,21 @@ function merchandising(){
 }
 function bulkSetMerch(key,val){if(!state.merchSel.size){alert('请先勾选商品');return}state.merch.forEach(function(p){if(state.merchSel.has(p.slug))p[key]=val});drawMerchList()}
 function drawMerchList(){
-  el('#merchList').innerHTML=state.merch.map(function(p,i){return '<div class="merch-row" draggable="true" data-merch-i="'+i+'">'
+  var stats=(state.summary&&state.summary.productStats)||{};
+  el('#merchList').innerHTML=state.merch.map(function(p,i){var st=stats[p.slug]||{views:0,wa:0};return '<div class="merch-row" draggable="true" data-merch-i="'+i+'">'
     +'<span class="merch-handle" title="拖动排序">⠿</span>'
     +'<input type="checkbox" data-merch-sel="'+esc(p.slug)+'" '+(state.merchSel.has(p.slug)?'checked':'')+'>'
     +'<img class="merch-thumb" src="'+esc(p.cardImage||'assets/love-logo.svg')+'" alt="">'
-    +'<div class="merch-info"><strong>'+esc(p.name)+'</strong><span class="muted">'+esc(p.category+' / '+p.subcategory)+'</span></div>'
+    +'<div class="merch-info"><strong>'+esc(p.name)+'</strong><span class="muted">'+esc(p.category+' / '+p.subcategory)+'</span><span class="merch-views"><span>👁 浏览 <b>'+(st.views||0)+'</b></span><span>💬 WhatsApp <b>'+(st.wa||0)+'</b></span></span></div>'
     +'<button class="merch-star'+(p.featured?' on':'')+'" data-merch-star="'+i+'" title="置顶/取消置顶">★</button>'
-    +'<label class="merch-en"><input type="checkbox" data-merch-en="'+i+'" '+(p.enabled?'checked':'')+'> 上架</label>'
+    +'<button type="button" class="merch-toggle '+(p.enabled?'on':'off')+'" data-merch-toggle="'+i+'" title="点击切换上架/下架">'+(p.enabled?'已上架':'已下架')+'</button>'
     +'<input class="merch-price" data-merch-price="'+i+'" value="'+esc(p.price)+'" placeholder="价格">'
     +'<span class="merch-ud"><button type="button" data-merch-up="'+i+'">↑</button><button type="button" data-merch-down="'+i+'">↓</button></span>'
     +'<a class="btn secondary" href="/'+esc(p.page)+'" target="_blank">预览</a>'
     +'</div>';}).join('')||'<div class="card muted">暂无商品。</div>';
   document.querySelectorAll('[data-merch-sel]').forEach(function(c){c.onchange=function(){if(c.checked)state.merchSel.add(c.dataset.merchSel);else state.merchSel.delete(c.dataset.merchSel)}});
   document.querySelectorAll('[data-merch-star]').forEach(function(b){b.onclick=function(){var i=+b.dataset.merchStar;state.merch[i].featured=!state.merch[i].featured;drawMerchList()}});
-  document.querySelectorAll('[data-merch-en]').forEach(function(c){c.onchange=function(){state.merch[+c.dataset.merchEn].enabled=c.checked}});
+  document.querySelectorAll('[data-merch-toggle]').forEach(function(b){b.onclick=function(){var i=+b.dataset.merchToggle;state.merch[i].enabled=!state.merch[i].enabled;drawMerchList()}});
   document.querySelectorAll('[data-merch-price]').forEach(function(inp){inp.oninput=function(){state.merch[+inp.dataset.merchPrice].price=inp.value}});
   document.querySelectorAll('[data-merch-up]').forEach(function(b){b.onclick=function(){moveMerch(+b.dataset.merchUp,-1)}});
   document.querySelectorAll('[data-merch-down]').forEach(function(b){b.onclick=function(){moveMerch(+b.dataset.merchDown,1)}});
