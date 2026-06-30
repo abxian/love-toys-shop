@@ -1,0 +1,7 @@
+/* dulizhan: hide off-site / un-scraped UI (no flash before clean.js runs) */
+#block-play-languageswitcher,.language-switcher-language-url,
+a[href*="apps.apple.com"],a[href*="play.google.com"],a[href*="itunes.apple.com"],
+[class*="app-download"],[class*="app-banner"],[class*="download-app"],
+[class*="qr-code"],[class*="qrcode"],.micro_qr_code,
+.footer-wechat-bazaarvoice,.footer-wechat,.footer-bazaarvoice,
+#bazaarreviews,.bazaar-reviews-block,.bazaar-reviews{display:none!important}

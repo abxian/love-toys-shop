@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunkreact_app=globalThis.webpackChunkreact_app||[]).push([[556],{30556(e,a,s){s.r(a),s.d(a,{default:()=>n});var c=s(63696),l=s(67743),t=s(62540);const u=(0,l.A)(()=>s.e(8727).then(s.bind(s,18727))),n=e=>{let{blockUuid:a}=e;return(0,t.jsx)(c.Suspense,{children:(0,t.jsx)(u,{blockUuid:a})})}}}]);

@@ -1,0 +1,66 @@
+/* dulizhan: hide all cart / checkout / payment / login / account UI.
+   Display-only clone — products & info only. */
+
+/* Known Drupal/React commerce + auth blocks (header & body) */
+#block-play-shopping-cart,
+#block-reactcart,
+#block-react-google,
+#react-google,
+#block-play-account-menu-menu,
+.block-commerce-cart,
+.block-commerce_cart,
+.block-lelo-api-user,
+.block-react_google,
+.block-reactcart,
+.block-hil-wishlist,
+.block-hil_wishlist {
+  display: none !important;
+}
+
+/* Generic commerce / cart / checkout / buy widgets (React-rendered classes) */
+[class*="add-to-cart"],
+[class*="addtocart"],
+[class*="addToCart"],
+[class*="add-to-bag"],
+[class*="add_to_cart"],
+[class*="buy-now"],
+[class*="buynow"],
+[class*="checkout"],
+[class*="mini-cart"],
+[class*="minicart"],
+[class*="shopping-cart"],
+[class*="cart-icon"],
+[class*="cart-count"],
+[class*="wishlist"],
+[id*="add-to-cart"],
+[id*="checkout"],
+form.commerce-cart-form,
+.commerce-order-item-add-to-cart-form,
+.field--name-add-to-cart,
+.product--add-to-cart {
+  display: none !important;
+}
+
+/* Payment-method icons / badges (Visa, Mastercard, PayPal, Apple Pay, …) */
+img[src*="payment"],
+img[src*="Asia-payment"],
+img[alt*="payment" i],
+[class*="payment-method"],
+[class*="payment-icons"],
+[class*="payment-logos"] {
+  display: none !important;
+}
+
+/* Account / login / sign-in entry points */
+[class*="user-account"],
+[class*="my-account"],
+[class*="account-menu"],
+[class*="sign-in"],
+[class*="signin"],
+[class*="login"],
+a[href*="/user/login"],
+a[href*="/user/register"],
+a[href*="/checkout"],
+a[href*="/cart"] {
+  display: none !important;
+}

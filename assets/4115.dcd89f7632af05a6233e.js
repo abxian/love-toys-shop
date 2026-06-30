@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunkreact_app=globalThis.webpackChunkreact_app||[]).push([[4115],{24115(e,a,s){s.r(a),s.d(a,{default:()=>n});var l=s(63696),p=s(67743),c=s(62540);const h=(0,p.A)(()=>Promise.all([s.e(4757),s.e(4693)]).then(s.bind(s,9593))),n=e=>(0,c.jsx)(l.Suspense,{children:(0,c.jsx)(h,{...e})})}}]);

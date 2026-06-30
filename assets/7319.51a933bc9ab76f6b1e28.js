@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunkreact_app=globalThis.webpackChunkreact_app||[]).push([[7319],{17319(e,t,r){r.r(t),r.d(t,{default:()=>l});var s=r(63696),u=r(67743),a=r(62540);const c=(0,u.A)(()=>r.e(4262).then(r.bind(r,34262))),l=e=>{let{resultProductId:t}=e;return(0,a.jsx)(s.Suspense,{children:(0,a.jsx)(c,{resultProductId:t})})}}}]);

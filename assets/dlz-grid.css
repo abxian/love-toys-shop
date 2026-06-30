@@ -1,0 +1,12 @@
+/* dulizhan: static product grid for category pages */
+.dlz-grid-wrap{max-width:1280px;margin:0 auto;padding:32px 20px 56px}
+.dlz-grid-wrap h2{font-size:13px;letter-spacing:.18em;text-transform:uppercase;margin:0 0 24px;font-weight:600}
+.dlz-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:28px 22px}
+@media(max-width:980px){.dlz-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:680px){.dlz-grid{grid-template-columns:repeat(2,1fr);gap:20px 14px}}
+.dlz-card{display:block;text-decoration:none;color:inherit;transition:transform .25s ease}
+.dlz-card:hover{transform:translateY(-4px)}
+.dlz-card__img{aspect-ratio:2/1;width:100%;border-radius:10px;overflow:hidden;background:#f3f1ee}
+.dlz-card__img img{width:100%;height:100%;object-fit:cover;display:block}
+.dlz-card__name{margin:14px 2px 0;font-size:15px;line-height:1.35;font-weight:500}
+.dlz-card__cta{margin:6px 2px 0;font-size:12px;letter-spacing:.12em;text-transform:uppercase;opacity:.6}

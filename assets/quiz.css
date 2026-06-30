@@ -1,0 +1,31 @@
+/* dulizhan: static sex-toy quiz modal (lelo style) */
+.dlz-quiz-modal{position:fixed;inset:0;z-index:99999;background:#0b0b0b;color:#fff;display:none;overflow-y:auto}
+.dlz-quiz-modal.open{display:block}
+.dlz-quiz-inner{max-width:760px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;justify-content:center;padding:72px 24px 96px;text-align:center}
+.dlz-quiz-close{position:fixed;top:22px;right:26px;background:none;border:0;color:#fff;font-size:30px;line-height:1;cursor:pointer;opacity:.8}
+.dlz-quiz-close:hover{opacity:1}
+.dlz-quiz-progress{position:fixed;top:0;left:0;height:3px;background:#fff;width:0;transition:width .3s ease}
+.dlz-quiz-step{font-size:12px;letter-spacing:.18em;text-transform:uppercase;opacity:.55;margin-bottom:18px}
+.dlz-quiz-q{font-size:34px;line-height:1.15;font-weight:700;margin:0 0 36px}
+@media(max-width:600px){.dlz-quiz-q{font-size:26px}}
+.dlz-quiz-opts{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;max-width:520px;margin:0 auto;width:100%}
+.dlz-quiz-opts.one{grid-template-columns:1fr}
+.dlz-quiz-opt{padding:18px 16px;border:1.5px solid #444;border-radius:40px;background:none;color:#fff;font-size:16px;cursor:pointer;transition:all .18s ease}
+.dlz-quiz-opt:hover,.dlz-quiz-opt.sel{border-color:#fff;background:#fff;color:#0b0b0b}
+.dlz-quiz-back{margin-top:34px;background:none;border:0;color:#fff;opacity:.6;cursor:pointer;font-size:13px;letter-spacing:.1em;text-transform:uppercase}
+.dlz-quiz-back:hover{opacity:1}
+/* results */
+.dlz-quiz-result-h{font-size:13px;letter-spacing:.18em;text-transform:uppercase;opacity:.6;margin-bottom:10px}
+.dlz-quiz-result-t{font-size:30px;font-weight:700;margin:0 0 36px}
+.dlz-quiz-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+@media(max-width:600px){.dlz-quiz-cards{grid-template-columns:1fr}}
+.dlz-quiz-card{display:block;text-decoration:none;color:#fff;text-align:left}
+.dlz-quiz-card.top{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center;border:1px solid #2a2a2a;border-radius:14px;padding:18px;margin-bottom:8px}
+@media(max-width:600px){.dlz-quiz-card.top{grid-template-columns:1fr}}
+.dlz-quiz-card img{width:100%;aspect-ratio:2/1;object-fit:cover;border-radius:10px;display:block;background:#1a1a1a}
+.dlz-quiz-badge{display:inline-block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;background:#fff;color:#0b0b0b;padding:4px 10px;border-radius:20px;margin-bottom:10px}
+.dlz-quiz-card .nm{font-size:18px;font-weight:600;margin:12px 2px 4px}
+.dlz-quiz-card .tl{font-size:13px;opacity:.65;margin:0 2px}
+.dlz-quiz-card .vp{display:inline-block;margin:12px 2px 0;font-size:12px;letter-spacing:.12em;text-transform:uppercase;border-bottom:1px solid #fff;padding-bottom:2px}
+.dlz-quiz-restart{margin-top:40px;display:inline-block;padding:14px 34px;border:1.5px solid #fff;border-radius:40px;background:none;color:#fff;cursor:pointer;letter-spacing:.1em;text-transform:uppercase;font-size:13px}
+.dlz-quiz-restart:hover{background:#fff;color:#0b0b0b}

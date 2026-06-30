@@ -1,0 +1,35 @@
+[
+  {
+    "label": "Best Selling Sex Toys",
+    "href": "bestsellers.html",
+    "children": []
+  },
+  {
+    "label": "Sex Toys for Women",
+    "href": "sex-toys-for-women.html",
+    "children": [
+      {
+        "label": "Clitoral Vibrators",
+        "href": "clitoral-vibrators.html"
+      },
+      {
+        "label": "Rabbit Vibrators",
+        "href": "rabbit-vibrators.html"
+      },
+      {
+        "label": "G-Spot Vibrators",
+        "href": "g-spot-vibrators.html"
+      }
+    ]
+  },
+  {
+    "label": "Sex Toys for Men",
+    "href": "sex-toys-for-men.html",
+    "children": []
+  },
+  {
+    "label": "Sex Toys for Couples",
+    "href": "sex-toys-for-couples.html",
+    "children": []
+  }
+]

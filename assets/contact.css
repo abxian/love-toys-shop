@@ -1,0 +1,22 @@
+/* dulizhan: WhatsApp contact (replaces newsletter + chat widget) */
+/* hide original newsletter subscribe form (replaced by JS, no flash) */
+.hil-newsletter-lelo-newsletter-form,#block-play-subscriptionblock .messages--error{display:none!important}
+/* hide third-party chat launcher iframes */
+iframe#launcher,#webWidget,iframe[title*="chat" i],iframe[title*="Messaging" i],iframe[title*="Number of unread" i]{display:none!important}
+
+/* lift contact CTA above the newsletter section's background image */
+.newsletter_block #block-play-subscriptionblock,.newsletter-custom-block #block-play-subscriptionblock{position:relative;z-index:5}
+.dlz-wa-cta,.dlz-wa-num{position:relative;z-index:5}
+.dlz-wa-cta{display:inline-flex;align-items:center;gap:10px;margin-top:8px;padding:15px 30px;border-radius:40px;
+  background:#25D366;color:#fff!important;text-decoration:none;font-size:16px;font-weight:600;letter-spacing:.02em;transition:transform .18s ease,box-shadow .18s ease}
+.dlz-wa-cta:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(37,211,102,.4)}
+.dlz-wa-cta svg{width:22px;height:22px;fill:#fff}
+.dlz-wa-num{margin-top:14px;font-size:14px;opacity:.85;letter-spacing:.04em}
+
+/* floating WhatsApp button */
+.dlz-wa-float{position:fixed;left:20px;bottom:20px;z-index:100000;display:flex;align-items:center;gap:10px;
+  background:#25D366;color:#fff;text-decoration:none;padding:12px 18px 12px 14px;border-radius:40px;
+  box-shadow:0 6px 20px rgba(0,0,0,.25);font-size:14px;font-weight:600;transition:transform .18s ease}
+.dlz-wa-float:hover{transform:scale(1.05)}
+.dlz-wa-float svg{width:26px;height:26px;fill:#fff}
+@media(max-width:600px){.dlz-wa-float span{display:none}.dlz-wa-float{padding:14px;border-radius:50%}}
