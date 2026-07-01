@@ -2513,12 +2513,12 @@ async function saveSettings(){await api('/api/admin/settings',{method:'PUT',body
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 function renderApp(){root.innerHTML=\`
 <div class="app"><aside class="side"><div class="brand">LOVE</div><div class="nav">
-\${[['dashboard','仪表盘'],['products','商品管理'],['merchandising','展示管理'],['categories','分类管理'],['pages','页面管理'],['images','图片替换'],['blocks','区块编辑'],['pixels','Pixel 像素'],['whatsapp','WhatsApp'],['events','访问记录']].map(x=>\`<button data-tab="\${x[0]}">\${x[1]}</button>\`).join('')}
+\${[['dashboard','仪表盘'],['products','商品管理'],['merchandising','展示管理'],['categories','分类管理'],['pages','页面管理'],['pageedit','页面编辑'],['images','图片替换'],['blocks','区块编辑'],['pixels','Pixel 像素'],['whatsapp','WhatsApp'],['events','访问记录']].map(x=>\`<button data-tab="\${x[0]}">\${x[1]}</button>\`).join('')}
 </div></aside><main class="main"><div class="top"><div><h1 id="title"></h1><div class="muted">前台和后台使用同一套商品、分类、页面和统计数据。</div></div><button class="btn secondary" id="logout">退出</button></div><div id="view"></div></main></div>\`;
 document.querySelectorAll('.nav button').forEach(b=>{b.onclick=()=>{current=b.dataset.tab;renderView()}});
 el('#logout').onclick=async()=>{await api('/admin/logout',{method:'POST'});renderLogin()};
 renderView()}
-function renderView(){setActive();const views={dashboard,pages,products,merchandising,categories,images,blocks,pixels,whatsapp,events};const titles={dashboard:'仪表盘',pages:'页面管理',products:'商品管理',merchandising:'展示管理',categories:'分类管理',images:'图片替换',blocks:'页面区块编辑',pixels:'Pixel 像素代码',whatsapp:'WhatsApp 设置',events:'访问记录'};el('#title').textContent=titles[current]||'';(views[current]||dashboard)()}
+function renderView(){setActive();const views={dashboard,pages,products,merchandising,categories,pageedit:pageeditor,images,blocks,pixels,whatsapp,events};const titles={dashboard:'仪表盘',pages:'页面管理',products:'商品管理',merchandising:'展示管理',categories:'分类管理',pageedit:'页面可视化编辑',images:'图片替换',blocks:'页面区块编辑',pixels:'Pixel 像素代码',whatsapp:'WhatsApp 设置',events:'访问记录'};el('#title').textContent=titles[current]||'';(views[current]||dashboard)()}
 function dashboard(){const s=state.summary||{};const days=s.last14Days||[];el('#view').innerHTML=\`
 <div class="cards"><div class="card">总浏览量<div class="metric">\${s.pageViews||0}</div></div><div class="card">总访客<div class="metric">\${s.totalVisitors||0}</div></div><div class="card">今日浏览量<div class="metric">\${s.todayViews||0}</div></div><div class="card">今日访客<div class="metric">\${s.todayVisitors||0}</div></div></div>
 <div class="cards" style="margin-top:14px"><div class="card">WhatsApp 点击<div class="metric">\${s.whatsappClicks||0}</div></div><div class="card">商品点击<div class="metric">\${s.productClicks||0}</div></div><div class="card">今日 WhatsApp<div class="metric">\${s.todayWhatsapp||0}</div></div><div class="card">转化率<div class="metric">\${s.conversionRate||0}%</div></div></div>
@@ -2933,6 +2933,102 @@ async function saveShowcase(){
   state.settings.homeShowcaseEnabled=el('#showEnabled').checked;
   await api('/api/admin/settings',{method:'PUT',body:JSON.stringify(state.settings)});
   await load();alert('首页推荐已保存');
+}
+function pageeditor(){
+  var page=(state.pageEditPage&&(state.pages||[]).some(function(p){return p.slug===state.pageEditPage}))?state.pageEditPage:'index.html';
+  state.pageEditPage=page;
+  el('#view').innerHTML='<div class="toolbar"><select id="pgPage">'+pageOptions(page)+'</select><a class="btn secondary" id="pgOpen" href="/'+page+'" target="_blank">新窗口打开</a><button class="btn secondary" id="pgReload">刷新预览</button><span class="muted">在左侧预览里直接点「文字 / 图片 / 视频」即可弹窗编辑并替换</span></div>'
+    +'<div class="visual-layout"><div class="visual-preview-wrap"><div class="visual-preview-head"><strong>页面预览（点选编辑）</strong></div><iframe class="visual-preview-frame" id="pgPreview" src="/'+page+'?adminPreview='+Date.now()+'"></iframe></div>'
+    +'<div class="visual-side"><div class="card"><h3>点选元素编辑</h3><p class="muted">点左侧预览中的文字/图片/视频会弹出编辑框；也可展开下面的列表逐项编辑。保存后预览自动刷新，前台即时生效。</p></div><details class="card"><summary>全部文字</summary><div class="visual-list" id="pgBlockList"></div></details><details class="card"><summary>全部图片 / 视频</summary><div class="visual-list" id="pgImageList"></div></details></div></div>'
+    +'<div class="visual-modal" id="pgModal"><div class="visual-dialog"><div class="visual-dialog-head"><h3 id="pgModalTitle">编辑元素</h3><button class="visual-close" type="button" id="pgModalClose">×</button></div><div class="visual-dialog-body" id="pgModalBody"></div></div></div>';
+  el('#pgPage').onchange=function(e){state.pageEditPage=e.target.value;pageeditor()};
+  el('#pgReload').onclick=function(){var f=el('#pgPreview');if(f)f.src='/'+state.pageEditPage+'?adminPreview='+Date.now()};
+  el('#pgModalClose').onclick=closePgModal;
+  el('#pgModal').onclick=function(e){if(e.target.id==='pgModal')closePgModal()};
+  loadPageEditorData(page);
+}
+function closePgModal(){var m=el('#pgModal');if(m)m.classList.remove('open')}
+async function loadPageEditorData(page){
+  var data=await api('/api/admin/editor?page='+encodeURIComponent(page));
+  state.pgEditor=data;drawPgLists();bindPgPreview();
+}
+function drawPgLists(){
+  var ed=state.pgEditor;if(!ed)return;
+  var blocks=ed.blocks||[],images=ed.images||[];
+  el('#pgBlockList').innerHTML=blocks.slice(0,80).map(function(b,i){return '<button class="visual-item" data-pgblock="'+i+'"><strong>'+esc(b.tag||'text')+'</strong><span>'+esc(b.value||b.original||'')+'</span></button>'}).join('')||'<p class="muted">无文字</p>';
+  el('#pgImageList').innerHTML=images.slice(0,80).map(function(img,i){return '<button class="visual-item" data-pgimage="'+i+'">'+mediaThumbHtml(img)+'<span>'+esc(mediaLabel(img))+'</span></button>'}).join('')||'<p class="muted">无图片</p>';
+  document.querySelectorAll('[data-pgblock]').forEach(function(b){b.onclick=function(){selectPg('block',+b.dataset.pgblock)}});
+  document.querySelectorAll('[data-pgimage]').forEach(function(b){b.onclick=function(){selectPg('image',+b.dataset.pgimage)}});
+}
+function bindPgPreview(){
+  var frame=el('#pgPreview');if(!frame)return;
+  frame.onload=function(){
+    try{
+      var doc=frame.contentDocument;if(!doc)return;
+      var style=doc.createElement('style');
+      style.textContent='[data-admin-editable]{outline:1px dashed rgba(17,19,23,.35);outline-offset:3px;cursor:pointer}[data-admin-editable]:hover{outline:2px solid #111317!important;background:rgba(255,235,160,.18)}';
+      doc.head.appendChild(style);
+      var textSel='h1,h2,h3,h4,h5,h6,p,a,button,li,span,strong,em,small,label';
+      doc.querySelectorAll(textSel).forEach(function(n){if(normalizeTextForEdit(n.textContent).length>1)n.setAttribute('data-admin-editable','text')});
+      doc.querySelectorAll('img').forEach(function(n){n.setAttribute('data-admin-editable','image')});
+      doc.querySelectorAll('video,[data-video-embed-field-lazy]').forEach(function(n){n.setAttribute('data-admin-editable','video')});
+      doc.addEventListener('click',function(ev){
+        var img=ev.target.closest&&ev.target.closest('img');
+        var video=ev.target.closest&&ev.target.closest('video,[data-video-embed-field-lazy]');
+        var text=ev.target.closest&&ev.target.closest(textSel);
+        if(!img&&!video&&!text)return;
+        ev.preventDefault();ev.stopPropagation();
+        if(img){var i1=matchPgImage(img);if(i1>-1)selectPg('image',i1);return}
+        if(video){var i2=matchPgImage(video);if(i2>-1)selectPg('image',i2);return}
+        var i3=matchPgBlock(text);if(i3>-1)selectPg('block',i3);
+      },true);
+    }catch(e){}
+  };
+}
+function matchPgBlock(node){
+  var t=normalizeTextForEdit(node&&node.textContent);
+  var blocks=(state.pgEditor&&state.pgEditor.blocks)||[];
+  var idx=blocks.findIndex(function(b){return normalizeTextForEdit(b.value||b.original)===t||normalizeTextForEdit(b.original)===t});
+  if(idx<0)idx=blocks.findIndex(function(b){return t&&normalizeTextForEdit(b.original).indexOf(t)>-1});
+  return idx;
+}
+function matchPgImage(node){
+  var src=String((node.currentSrc||node.src||(node.getAttribute&&node.getAttribute('src'))||'')).split('?')[0];
+  var tail=src.split('/').slice(-2).join('/');
+  var images=(state.pgEditor&&state.pgEditor.images)||[];
+  return images.findIndex(function(img){var vals=[img.replacement,img.preview,img.original].map(function(v){return String(v||'').split('?')[0]});return vals.some(function(v){return v&&((src&&src.endsWith(v.replace(/^\\//,'')))||(tail&&v.endsWith(tail))||v===src)})});
+}
+function selectPg(type,index){state.pgType=type;state.pgIndex=index;drawPgSelected();var m=el('#pgModal');if(m)m.classList.add('open')}
+function drawPgSelected(){
+  var ed=state.pgEditor;if(!ed)return;
+  if(state.pgType==='image'){
+    var img=(ed.images||[])[state.pgIndex];if(!img){el('#pgModalBody').innerHTML='<p class="muted">请选择图片</p>';return}
+    var isVideo=img.mediaKind==='video'||/\\.(mp4|webm|ogg|ogv|mov|m4v)(\\?|#|$)/i.test(img.preview||img.original||'');
+    el('#pgModalTitle').textContent=isVideo?'编辑视频':'编辑图片';
+    el('#pgModalBody').innerHTML=mediaThumbHtml(img)+'<div class="row"><label><input type="checkbox" id="pgImgEn" '+(img.enabled!==false?'checked':'')+'> 启用替换</label></div><div class="row"><label>'+(isVideo?'视频链接':'图片链接')+'</label><input id="pgImgUrl" value="'+esc(img.replacement||'')+'" placeholder="/assets/admin-uploads/... 或 https://..."></div><div class="row"><label>上传本地'+(isVideo?'视频':'图片')+'</label><input type="file" id="pgImgFile" accept="'+(isVideo?'video/mp4,video/webm,video/ogg':'image/png,image/jpeg,image/webp,image/gif')+'"></div><div class="mini">原文件：'+esc(img.original)+'</div><div class="toolbar"><button class="btn" id="pgSave">保存</button><button class="btn secondary" id="pgClear">清除替换</button></div>';
+    el('#pgImgUrl').oninput=function(e){img.replacement=e.target.value};
+    el('#pgImgEn').onchange=function(e){img.enabled=e.target.checked};
+    el('#pgClear').onclick=function(){img.replacement='';drawPgSelected()};
+    el('#pgImgFile').onchange=async function(e){if(!e.target.files||!e.target.files[0])return;try{img.replacement=await uploadImage(e.target.files[0]);drawPgSelected()}catch(x){alert(x.message||'上传失败')}};
+    el('#pgSave').onclick=savePgEditor;
+    return;
+  }
+  var b=(ed.blocks||[])[state.pgIndex];if(!b){el('#pgModalBody').innerHTML='<p class="muted">请选择文字</p>';return}
+  el('#pgModalTitle').textContent='替换文字';
+  el('#pgModalBody').innerHTML='<div class="toolbar"><span class="pill">'+esc(b.tag||'text')+'</span><label><input type="checkbox" id="pgBlkEn" '+(b.enabled!==false?'checked':'')+'> 启用替换</label></div><div class="row"><label>替换成</label><textarea id="pgBlkText" style="min-height:170px">'+esc(b.value||b.original||'')+'</textarea></div><div class="mini">原文：'+esc(b.original||'')+'</div><div class="toolbar"><button class="btn" id="pgSave">保存</button><button class="btn secondary" id="pgReset">恢复原文</button></div>';
+  el('#pgBlkText').oninput=function(e){b.value=e.target.value};
+  el('#pgBlkEn').onchange=function(e){b.enabled=e.target.checked};
+  el('#pgReset').onclick=function(){b.value=b.original||'';drawPgSelected()};
+  el('#pgSave').onclick=savePgEditor;
+}
+async function savePgEditor(){
+  var ed=state.pgEditor;if(!ed)return;
+  await api('/api/admin/blocks?page='+encodeURIComponent(ed.page),{method:'PUT',body:JSON.stringify(ed.blocks||[])});
+  await api('/api/admin/images?page='+encodeURIComponent(ed.page),{method:'PUT',body:JSON.stringify(ed.images||[])});
+  closePgModal();
+  var f=el('#pgPreview');if(f)f.src='/'+ed.page+'?adminPreview='+Date.now();
+  drawPgLists();
+  alert('已保存，预览已刷新，前台即时生效');
 }
 boot();
 </script>
