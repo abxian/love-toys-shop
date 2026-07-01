@@ -1937,34 +1937,23 @@ function injectHomeShowcase(file, html, settings) {
   if (!products.length) return html;
   const cards = products.map((product) => {
     const image = escapeAttr(productCardImage(product));
-    const price = product.price ? `<div class="dlz-bs-price">${escapeHtml(formatMoney(product.price, settings))}</div>` : "";
-    const badge = /new|thrust|v3/i.test(product.name || "") ? "NEW" : "BESTSELLER";
-    const swatches = productVariants(product).slice(0, 5).map((v) =>
-      `<span class="dlz-bs-dot" title="${escapeAttr(v.name || "")}" style="background:${escapeAttr(v.color || "#d8d8d8")}"></span>`
-    ).join("");
     return `<a class="dlz-bs-card" href="${escapeAttr(product.page)}">
-      <div class="dlz-bs-badge">${badge}</div>
       <div class="dlz-bs-img"><img src="${image}" alt="${escapeAttr(product.name)}" loading="lazy"></div>
       <div class="dlz-bs-name">${escapeHtml(product.name)}</div>
-      <div class="dlz-bs-meta">${escapeHtml(product.subcategory || product.category || "")}</div>
-      <div class="dlz-bs-foot">${price}${swatches ? `<div class="dlz-bs-dots">${swatches}</div>` : ""}</div>
+      <div class="dlz-bs-view">VIEW PRODUCT</div>
     </a>`;
   }).join("");
   const style = `<style>
     .dlz-bestsellers-wrap{margin-top:26px}
-    .dlz-bs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:24px;max-width:1480px;margin:0 auto;padding:0 clamp(12px,3vw,40px);font-family:Arial,"Microsoft YaHei",sans-serif}
-    .dlz-bs-card{position:relative;display:flex;flex-direction:column;text-decoration:none;background:#fff;color:#0a0a0a;border:1px solid #ececec;min-height:430px;padding:18px 16px 18px;transition:transform .18s ease,box-shadow .18s ease}
-    .dlz-bs-card:hover{transform:translateY(-3px);box-shadow:0 18px 40px rgba(0,0,0,.4)}
-    .dlz-bs-badge{font-size:12px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;color:#111;min-height:16px}
-    .dlz-bs-img{display:grid;place-items:center;height:210px;margin-top:8px}
-    .dlz-bs-img img{max-width:100%;max-height:100%;object-fit:contain}
-    .dlz-bs-name{margin-top:18px;font-size:13px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;line-height:1.2}
-    .dlz-bs-meta{font-size:12px;color:#666;margin-top:6px;letter-spacing:.04em}
-    .dlz-bs-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:16px}
-    .dlz-bs-price{font-size:15px;font-weight:800;letter-spacing:.04em}
-    .dlz-bs-dots{display:flex;gap:7px}
-    .dlz-bs-dot{width:18px;height:18px;border-radius:50%;border:1px solid #cfcfcf;box-shadow:inset 0 0 0 2px #fff;display:inline-block}
-    @media(max-width:760px){.dlz-bs-grid{grid-template-columns:repeat(2,1fr);gap:14px}.dlz-bs-img{height:150px}.dlz-bs-card{min-height:360px}}
+    .dlz-bs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:34px 30px;max-width:1480px;margin:0 auto;padding:0 clamp(12px,3vw,40px);font-family:Arial,"Microsoft YaHei",sans-serif}
+    .dlz-bs-card{display:flex;flex-direction:column;text-decoration:none;color:#fff}
+    .dlz-bs-img{display:grid;place-items:center;height:210px;border-radius:14px;background:rgba(255,255,255,.05);overflow:hidden;transition:transform .2s ease}
+    .dlz-bs-img img{max-width:88%;max-height:88%;object-fit:contain}
+    .dlz-bs-card:hover .dlz-bs-img{transform:translateY(-3px)}
+    .dlz-bs-name{margin-top:16px;font-size:15px;font-weight:700;letter-spacing:.01em;line-height:1.2;color:#fff}
+    .dlz-bs-view{margin-top:8px;font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:#9a9a9a}
+    .dlz-bs-card:hover .dlz-bs-view{color:#fff}
+    @media(max-width:760px){.dlz-bs-grid{grid-template-columns:repeat(2,1fr);gap:22px 16px}.dlz-bs-img{height:150px}}
   </style>`;
   const grid = `<div class="dlz-bestsellers-wrap">${style}<div class="dlz-bs-grid">${cards}</div></div>`;
   // 1) Primary: REPLACE the homepage "BESTSELLERS" React block entirely (drop its id/class
