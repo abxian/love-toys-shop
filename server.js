@@ -2939,7 +2939,7 @@ function pageeditor(){
   state.pageEditPage=page;
   el('#view').innerHTML='<div class="toolbar"><select id="pgPage">'+pageOptions(page)+'</select><a class="btn secondary" id="pgOpen" href="/'+page+'" target="_blank">新窗口打开</a><button class="btn secondary" id="pgReload">刷新预览</button><span class="muted">在左侧预览里直接点「文字 / 图片 / 视频」即可弹窗编辑并替换</span></div>'
     +'<div class="visual-layout"><div class="visual-preview-wrap"><div class="visual-preview-head"><strong>页面预览（点选编辑）</strong></div><iframe class="visual-preview-frame" id="pgPreview" src="/'+page+'?adminPreview='+Date.now()+'"></iframe></div>'
-    +'<div class="visual-side"><div class="card"><h3>点选元素编辑</h3><p class="muted">点左侧预览中的文字/图片/视频会弹出编辑框；也可展开下面的列表逐项编辑。保存后预览自动刷新，前台即时生效。</p></div><details class="card"><summary>全部文字</summary><div class="visual-list" id="pgBlockList"></div></details><details class="card"><summary>全部图片 / 视频</summary><div class="visual-list" id="pgImageList"></div></details></div></div>'
+    +'<div class="visual-side"><div class="card"><h3>点选元素编辑</h3><p class="muted">把鼠标移到左侧预览的元素上,会跟随显示类型标签,点击即可编辑:<br><b style="color:#e6a700">✏️ 文字(黄框)</b> · <b style="color:#1478ff">📷 图片(蓝框)</b> · <b style="color:#dc285a">🎬 视频(红框)</b>。保存后预览自动刷新,前台即时生效。</p></div><details class="card" open><summary>全部文字</summary><div class="visual-list" id="pgBlockList"></div></details><details class="card" open><summary>📷 全部图片</summary><div class="visual-list" id="pgImageList"></div></details><details class="card" open><summary>🎬 全部视频</summary><div class="visual-list" id="pgVideoList"></div></details></div></div>'
     +'<div class="visual-modal" id="pgModal"><div class="visual-dialog"><div class="visual-dialog-head"><h3 id="pgModalTitle">编辑元素</h3><button class="visual-close" type="button" id="pgModalClose">×</button></div><div class="visual-dialog-body" id="pgModalBody"></div></div></div>';
   el('#pgPage').onchange=function(e){state.pageEditPage=e.target.value;pageeditor()};
   el('#pgReload').onclick=function(){var f=el('#pgPreview');if(f)f.src='/'+state.pageEditPage+'?adminPreview='+Date.now()};
@@ -2956,9 +2956,16 @@ function drawPgLists(){
   var ed=state.pgEditor;if(!ed)return;
   var blocks=ed.blocks||[],images=ed.images||[];
   el('#pgBlockList').innerHTML=blocks.slice(0,80).map(function(b,i){return '<button class="visual-item" data-pgblock="'+i+'"><strong>'+esc(b.tag||'text')+'</strong><span>'+esc(b.value||b.original||'')+'</span></button>'}).join('')||'<p class="muted">无文字</p>';
-  el('#pgImageList').innerHTML=images.slice(0,80).map(function(img,i){return '<button class="visual-item" data-pgimage="'+i+'">'+mediaThumbHtml(img)+'<span>'+esc(mediaLabel(img))+'</span></button>'}).join('')||'<p class="muted">无图片</p>';
+  var imgItems='',vidItems='';
+  images.forEach(function(img,i){
+    var isVid=img.mediaKind==='video'||img.tag==='video-embed';
+    var btn='<button class="visual-item" data-pgmedia="'+i+'">'+mediaThumbHtml(img)+'<span>'+esc(mediaLabel(img))+'</span></button>';
+    if(isVid)vidItems+=btn;else imgItems+=btn;
+  });
+  el('#pgImageList').innerHTML=imgItems||'<p class="muted">无图片</p>';
+  el('#pgVideoList').innerHTML=vidItems||'<p class="muted">无视频</p>';
   document.querySelectorAll('[data-pgblock]').forEach(function(b){b.onclick=function(){selectPg('block',+b.dataset.pgblock)}});
-  document.querySelectorAll('[data-pgimage]').forEach(function(b){b.onclick=function(){selectPg('image',+b.dataset.pgimage)}});
+  document.querySelectorAll('[data-pgmedia]').forEach(function(b){b.onclick=function(){selectPg('image',+b.dataset.pgmedia)}});
 }
 function bindPgPreview(){
   var frame=el('#pgPreview');if(!frame)return;
@@ -2966,12 +2973,29 @@ function bindPgPreview(){
     try{
       var doc=frame.contentDocument;if(!doc)return;
       var style=doc.createElement('style');
-      style.textContent='[data-admin-editable]{outline:1px dashed rgba(17,19,23,.35);outline-offset:3px;cursor:pointer}[data-admin-editable]:hover{outline:2px solid #111317!important;background:rgba(255,235,160,.18)}';
+      style.textContent='[data-admin-editable]{outline-offset:3px;cursor:pointer;transition:outline-color .1s ease,background .1s ease}'
+        +'[data-admin-editable="text"]{outline:1px dashed rgba(230,167,0,.55)}'
+        +'[data-admin-editable="image"]{outline:1px dashed rgba(20,120,255,.5)}'
+        +'[data-admin-editable="video"]{outline:2px dashed rgba(220,40,90,.6)}'
+        +'[data-admin-editable="text"]:hover{outline:2px solid #e6a700!important;background:rgba(255,225,120,.22)}'
+        +'[data-admin-editable="image"]:hover{outline:3px solid #1478ff!important;background:rgba(20,120,255,.12)}'
+        +'[data-admin-editable="video"]:hover{outline:3px solid #dc285a!important;background:rgba(220,40,90,.14)}'
+        +'#dlzTag{position:fixed;z-index:2147483647;pointer-events:none;background:#111;color:#fff;font:700 12px/1.35 Arial,"Microsoft YaHei",sans-serif;padding:5px 10px;border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.35);display:none;white-space:nowrap;transform:translateY(-135%)}'
+        +'#dlzTag.img{background:#1478ff}#dlzTag.vid{background:#dc285a}#dlzTag.txt{background:#e6a700;color:#111}';
       doc.head.appendChild(style);
       var textSel='h1,h2,h3,h4,h5,h6,p,a,button,li,span,strong,em,small,label';
       doc.querySelectorAll(textSel).forEach(function(n){if(normalizeTextForEdit(n.textContent).length>1)n.setAttribute('data-admin-editable','text')});
       doc.querySelectorAll('img').forEach(function(n){n.setAttribute('data-admin-editable','image')});
       doc.querySelectorAll('video,[data-video-embed-field-lazy]').forEach(function(n){n.setAttribute('data-admin-editable','video')});
+      var tag=doc.createElement('div');tag.id='dlzTag';doc.body.appendChild(tag);
+      doc.addEventListener('mousemove',function(ev){
+        var t=ev.target.closest&&ev.target.closest('[data-admin-editable]');
+        if(!t){tag.style.display='none';return}
+        var ty=t.getAttribute('data-admin-editable');
+        var info=ty==='image'?['img','📷 图片 · 点击替换']:ty==='video'?['vid','🎬 视频 · 点击替换']:['txt','✏️ 文字 · 点击编辑'];
+        tag.className=info[0];tag.textContent=info[1];tag.style.left=(ev.clientX+14)+'px';tag.style.top=ev.clientY+'px';tag.style.display='block';
+      },true);
+      doc.addEventListener('mouseleave',function(){tag.style.display='none'},true);
       doc.addEventListener('click',function(ev){
         var img=ev.target.closest&&ev.target.closest('img');
         var video=ev.target.closest&&ev.target.closest('video,[data-video-embed-field-lazy]');
