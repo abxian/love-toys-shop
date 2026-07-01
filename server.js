@@ -1930,39 +1930,112 @@ function homeShowcaseProducts(settings) {
   return (featured.length ? featured : merchandiseSort(all)).slice(0, 8);
 }
 
+// Product cards with Quick View (like the category pages) for the homepage bestsellers,
+// centered, animated and spaced, rendered server-side from the chosen recommendations.
+function renderHomeShowcaseCatalog(products, settings) {
+  const qv = products.map((p) => ({
+    slug: p.slug,
+    name: p.name,
+    page: p.page,
+    category: p.subcategory || p.category || "",
+    priceText: formatMoney(p.price, settings),
+    image: productCardImage(p),
+    variants: productVariants(p),
+    description: p.description || p.notes || p.heroSubtitle || "",
+  }));
+  const cards = qv.map((p, idx) => {
+    const badge = /new|thrust|v3/i.test(p.name || "") ? "NEW" : "BESTSELLER";
+    const swatches = (p.variants || []).slice(0, 6).map((v, i) =>
+      `<button type="button" class="dlz-hs-swatch${i === 0 ? " is-active" : ""}" data-hs-image="${escapeAttr(v.image || p.image)}" style="background:${escapeAttr(v.color || "#d8d8d8")}" aria-label="${escapeAttr(v.name || "Option")}"></button>`
+    ).join("");
+    const price = p.priceText ? `<div class="dlz-hs-price">${escapeHtml(p.priceText)}</div>` : "";
+    return `<article class="dlz-hs-card" data-hs-card="${escapeAttr(p.slug)}" data-hs-img="${escapeAttr(p.image)}" style="animation-delay:${Math.min(idx * 60, 420)}ms">
+      <div class="dlz-hs-badge">${badge}</div>
+      <a class="dlz-hs-imgwrap" href="${escapeAttr(p.page)}" aria-label="${escapeAttr(p.name)}"><img class="dlz-hs-img" src="${escapeAttr(p.image)}" alt="${escapeAttr(p.name)}" loading="lazy"></a>
+      <div class="dlz-hs-body">
+        <a class="dlz-hs-name" href="${escapeAttr(p.page)}">${escapeHtml(p.name)}</a>
+        <div class="dlz-hs-meta">${escapeHtml(p.category)}</div>
+        ${swatches ? `<div class="dlz-hs-swatches">${swatches}</div>` : ""}
+        ${price}
+        <button type="button" class="dlz-hs-quick" data-hs-quick="${escapeAttr(p.slug)}">QUICK VIEW</button>
+      </div>
+    </article>`;
+  }).join("");
+  const style = `<style>
+    .dlz-hs-wrap{margin-top:28px}
+    .dlz-hs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,268px));gap:42px 34px;justify-content:center;max-width:1440px;margin:0 auto;padding:0 clamp(12px,3vw,44px);font-family:Arial,"Microsoft YaHei",sans-serif}
+    @keyframes dlzHsIn{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+    .dlz-hs-card{position:relative;display:flex;flex-direction:column;background:#fff;color:#0a0a0a;border-radius:8px;padding:18px 16px 16px;min-height:440px;opacity:0;animation:dlzHsIn .55s cubic-bezier(.22,.61,.36,1) both;transition:transform .2s ease,box-shadow .2s ease}
+    .dlz-hs-card:hover{transform:translateY(-4px);box-shadow:0 22px 48px rgba(0,0,0,.45)}
+    .dlz-hs-badge{font-size:12px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;color:#111;min-height:16px}
+    .dlz-hs-imgwrap{display:grid;place-items:center;height:210px;margin-top:6px}
+    .dlz-hs-img{max-width:92%;max-height:92%;object-fit:contain;transition:opacity .2s ease}
+    .dlz-hs-body{display:flex;flex-direction:column;flex:1;margin-top:16px}
+    .dlz-hs-name{font-size:13px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;line-height:1.2;color:#111;text-decoration:none}
+    .dlz-hs-meta{font-size:12px;color:#666;margin-top:6px;letter-spacing:.04em}
+    .dlz-hs-swatches{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+    .dlz-hs-swatch{width:20px;height:20px;border-radius:50%;border:1px solid #cfcfcf;box-shadow:inset 0 0 0 2px #fff;cursor:pointer;padding:0;transition:box-shadow .15s ease,transform .15s ease}
+    .dlz-hs-swatch:hover,.dlz-hs-swatch.is-active{box-shadow:inset 0 0 0 2px #fff,0 0 0 1px #050505;transform:translateY(-1px)}
+    .dlz-hs-price{margin-top:12px;font-size:15px;font-weight:800}
+    .dlz-hs-quick{margin-top:auto;border:0;background:#0a0a0a;color:#fff;padding:12px 14px;font-size:12px;font-weight:800;letter-spacing:.2em;cursor:pointer;border-radius:6px}
+    .dlz-hs-quick:hover{background:#333}
+    .dlz-qv-modal{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.58);padding:22px}
+    .dlz-qv-modal.open{display:flex}
+    .dlz-qv-dialog{background:#fff;color:#111;width:min(940px,100%);max-height:88vh;overflow:auto;display:grid;grid-template-columns:minmax(260px,420px) 1fr;position:relative;border-radius:8px}
+    .dlz-qv-close{position:absolute;right:12px;top:10px;border:0;background:transparent;font-size:30px;line-height:1;cursor:pointer;color:#111}
+    .dlz-qv-image{display:grid;place-items:center;background:#f6f6f6;min-height:420px;padding:28px}
+    .dlz-qv-image img{max-width:100%;max-height:420px;object-fit:contain}
+    .dlz-qv-copy{padding:40px 32px;display:grid;gap:14px;align-content:start}
+    .dlz-qv-copy h3{font-size:30px;margin:0;line-height:1.05}
+    .dlz-qv-meta{font-size:13px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#555}
+    .dlz-qv-price{font-size:20px;font-weight:800}
+    .dlz-qv-desc{font-size:14px;line-height:1.55;color:#444;margin:0}
+    .dlz-qv-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+    .dlz-qv-actions a{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;padding:13px 20px;font-size:13px;font-weight:800;letter-spacing:.12em;border-radius:6px}
+    .dlz-qv-actions .wa{background:#25D366;color:#fff}
+    .dlz-qv-actions .detail{background:#0a0a0a;color:#fff}
+    @media(max-width:760px){.dlz-hs-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 14px}.dlz-hs-imgwrap{height:150px}.dlz-hs-card{min-height:370px}.dlz-qv-dialog{grid-template-columns:1fr}.dlz-qv-image{min-height:260px}.dlz-qv-copy{padding:26px 20px}}
+  </style>`;
+  const modal = `<div class="dlz-qv-modal" id="dlzHsModal" aria-hidden="true"><div class="dlz-qv-dialog" role="dialog" aria-modal="true" aria-label="Product quick view"><button class="dlz-qv-close" type="button" aria-label="Close">×</button><div class="dlz-qv-image"><img alt=""></div><div class="dlz-qv-copy"><div class="dlz-qv-meta"></div><h3></h3><div class="dlz-qv-price"></div><p class="dlz-qv-desc"></p><div class="dlz-qv-actions"><a class="detail" href="#">VIEW DETAILS</a><a class="wa" href="#" target="_blank" rel="noopener">WHATSAPP</a></div></div></div></div>`;
+  const script = `<script>(function(){
+    var products = ${JSON.stringify(qv).replace(/</g, "\\u003c")};
+    var bySlug = {}; products.forEach(function(p){ bySlug[p.slug] = p; });
+    var modal = document.getElementById('dlzHsModal'); if (!modal) return;
+    function q(s){ return modal.querySelector(s); }
+    function openQV(slug, img){
+      var p = bySlug[slug]; if (!p) return;
+      var im = q('.dlz-qv-image img'); if (im){ im.src = img || p.image || ''; im.alt = p.name || ''; }
+      q('.dlz-qv-meta').textContent = p.category || '';
+      q('.dlz-qv-copy h3').textContent = p.name || '';
+      q('.dlz-qv-price').textContent = p.priceText || '';
+      q('.dlz-qv-desc').textContent = p.description || '';
+      var d = q('.dlz-qv-actions .detail'); if (d) d.href = p.page || '#';
+      var wa = q('.dlz-qv-actions .wa'); var cfg = window.__ADMIN_TRACKING__ || {}; if (wa) wa.href = cfg.whatsappUrl || '#';
+      modal.classList.add('open'); modal.setAttribute('aria-hidden','false'); document.body.style.overflow = 'hidden';
+    }
+    function closeQV(){ modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); document.body.style.overflow = ''; }
+    document.addEventListener('click', function(e){
+      var sw = e.target.closest && e.target.closest('.dlz-hs-swatch');
+      if (sw){ var card = sw.closest('.dlz-hs-card'); var img = sw.getAttribute('data-hs-image'); if (card && img){ card.setAttribute('data-hs-img', img); var ci = card.querySelector('.dlz-hs-img'); if (ci) ci.src = img; } var row = sw.closest('.dlz-hs-swatches'); if (row){ row.querySelectorAll('.dlz-hs-swatch').forEach(function(x){ x.classList.remove('is-active'); }); sw.classList.add('is-active'); } return; }
+      var qb = e.target.closest && e.target.closest('[data-hs-quick]');
+      if (qb){ e.preventDefault(); var card = qb.closest('.dlz-hs-card'); openQV(qb.getAttribute('data-hs-quick'), card && card.getAttribute('data-hs-img')); return; }
+      if (e.target === modal || (e.target.closest && e.target.closest('.dlz-qv-close'))) closeQV();
+    });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeQV(); });
+  })();</script>`;
+  return `<div class="dlz-hs-wrap">${style}<div class="dlz-hs-grid">${cards}</div>${modal}${script}</div>`;
+}
+
 function injectHomeShowcase(file, html, settings) {
   if (file !== "index.html") return html;
   if (settings.homeShowcaseEnabled === false) return html; // on by default; admin can disable
   const products = homeShowcaseProducts(settings);
   if (!products.length) return html;
-  const cards = products.map((product) => {
-    const image = escapeAttr(productCardImage(product));
-    return `<a class="dlz-bs-card" href="${escapeAttr(product.page)}">
-      <div class="dlz-bs-img"><img src="${image}" alt="${escapeAttr(product.name)}" loading="lazy"></div>
-      <div class="dlz-bs-name">${escapeHtml(product.name)}</div>
-      <div class="dlz-bs-view">VIEW PRODUCT</div>
-    </a>`;
-  }).join("");
-  const style = `<style>
-    .dlz-bestsellers-wrap{margin-top:26px}
-    .dlz-bs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:34px 30px;max-width:1480px;margin:0 auto;padding:0 clamp(12px,3vw,40px);font-family:Arial,"Microsoft YaHei",sans-serif}
-    .dlz-bs-card{display:flex;flex-direction:column;text-decoration:none;color:#fff}
-    .dlz-bs-img{display:grid;place-items:center;height:210px;border-radius:14px;background:rgba(255,255,255,.05);overflow:hidden;transition:transform .2s ease}
-    .dlz-bs-img img{max-width:88%;max-height:88%;object-fit:contain}
-    .dlz-bs-card:hover .dlz-bs-img{transform:translateY(-3px)}
-    .dlz-bs-name{margin-top:16px;font-size:15px;font-weight:700;letter-spacing:.01em;line-height:1.2;color:#fff}
-    .dlz-bs-view{margin-top:8px;font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:#9a9a9a}
-    .dlz-bs-card:hover .dlz-bs-view{color:#fff}
-    @media(max-width:760px){.dlz-bs-grid{grid-template-columns:repeat(2,1fr);gap:22px 16px}.dlz-bs-img{height:150px}}
-  </style>`;
-  const grid = `<div class="dlz-bestsellers-wrap">${style}<div class="dlz-bs-grid">${cards}</div></div>`;
-  // 1) Primary: REPLACE the homepage "BESTSELLERS" React block entirely (drop its id/class
-  //    so LELO's React bundle can't mount and overwrite our recommended products).
+  const grid = renderHomeShowcaseCatalog(products, settings);
+  // Replace the homepage "BESTSELLERS" React block entirely (drop its id/class so LELO's
+  // React bundle can't mount and overwrite our recommended products).
   const blockRe = /<div[^>]*class="[^"]*promotion-view-block[^"]*"[^>]*>\s*<\/div>/i;
-  if (blockRe.test(html)) {
-    return html.replace(blockRe, () => grid);
-  }
-  // 2) Fallback: append a section before the footer.
+  if (blockRe.test(html)) return html.replace(blockRe, () => grid);
   const section = `<section class="dlz-home-showcase" style="padding:48px 0">${grid}</section>`;
   if (/<footer\b/i.test(html)) return html.replace(/<footer\b/i, `${section}\n<footer`);
   return injectBefore(html, "</body>", section);
